@@ -681,6 +681,9 @@ func TestPlanningDeadlineCannotMovePastCoverage(t *testing.T) {
 	if count(t, store, "kind = 'fallback'") != 1 {
 		t.Fatal("a long review interval must not skip the end of coverage")
 	}
+	if stateOf(t, store, occurrence(t, contract, KindPlanningReview, base+70)) != StateLapsed {
+		t.Fatal("an undelivered planning review must lapse once the fallback carries the obligation")
+	}
 }
 
 func TestLivenessInvariantAcrossLifecycle(t *testing.T) {

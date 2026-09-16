@@ -34,7 +34,7 @@ so the same nominal instant keeps the same identity across restarts and receiver
 | `verified` / `failed` / `uncertain` | execution feedback bound to an immutable evidence digest |
 | `contained` | failure effects were independently bounded; never success |
 | `skipped` | due outside grace, coverage or expiry; recorded, not delivered |
-| `coalesced` / `superseded` / `lapsed` | undelivered and replaced by newer work, a newer generation, or the end of coverage, expiry or retirement |
+| `coalesced` / `superseded` / `lapsed` | undelivered and replaced by newer work or a newer generation, or no longer deliverable after the end of coverage, expiry, retirement, or resolution of the reviewed occurrence |
 
 ## Guarantees
 
@@ -42,8 +42,8 @@ so the same nominal instant keeps the same identity across restarts and receiver
 - **Acknowledgement is not verification.** A 2xx response records delivery only. Only `report` with an explicit outcome and a `sha256:` evidence digest changes execution certainty; free text is refused.
 - **Missed time follows the contract.** `all` keeps every instant in bounded batches, `latest` coalesces them into one occurrence covering the interval, `skip` records the missed interval and emits only within grace.
 - **Overlap follows the contract.** `defer` and `coalesce` hold new work while delivered work of the same contract (any generation) is unresolved; `coalesce` delivers only the newest undelivered occurrence; `allow` leaves concurrency to the executable relationship.
-- **Planning continuity.** A planning review is always armed before coverage ends. A renewal must reference an immutable plan, extend coverage and place the next review strictly inside it. A missed renewal lapses undelivered work and emits the fallback, dated at the end of coverage, and keeps re-emitting it. There is no implicit fallback to a human.
-- **Returns stay owed.** Pause, supersession, expiry and retirement never cancel a return review. While a return review waits for its first delivery attempt, later deadlines of the same parent add nothing, so an unreachable receiver cannot grow the ledger without bound.
+- **Planning continuity.** A planning review is always armed before coverage ends. A renewal must reference an immutable plan, extend coverage and place the next review strictly inside it. A missed renewal lapses undelivered work and planning reviews and emits the fallback, dated at the end of coverage, and keeps re-emitting it. There is no implicit fallback to a human.
+- **Returns stay owed.** Pause, supersession, expiry and retirement never cancel a return review. While a return review waits for its first delivery attempt, later deadlines of the same parent add nothing, so an unreachable receiver cannot grow the ledger without bound; a review never delivered lapses once its parent is resolved.
 - **Clock regression is explicit.** Evaluating earlier than persisted evidence fails with `ErrClock`; the cursor never moves backwards. Evidence records the clock source (`system-utc` or `operator-supplied-utc`).
 - **Restart answers.** `account` reports what was due, what was emitted, what may have executed, what is unresolved, what happens next, the planning coverage, and any uncovered obligation (which must be empty).
 
@@ -81,7 +81,7 @@ Every command opens the ledger, performs one durable operation and exits, so eac
 | HEART-006 acknowledgement is not verification | `TestAcknowledgementIsNotVerification`, `TestRelayAcknowledgesWithoutVerifying`, `TestReportRequiresDeliveryAndImmutableEvidence` |
 | HEART-007 pause and supersession | `TestPauseDefersWorkButNotReturnsOrPlanning`, `TestSupersessionPreservesHistoryAndOwedReturns` |
 | HEART-008 restart account | `TestKilledProcessLeavesOneOccurrenceAndAnAccount/attempted`, `TestLivenessInvariantAcrossLifecycle` |
-| HEART-009 bounded, lapsing obligations | `TestReturnReviewsStayBoundedWhileUndelivered`, `TestExpiryAndRetirementLapseUndeliveredWork`, `TestRelayKeepsRefusedDeliveryPending` |
+| HEART-009 bounded, lapsing obligations | `TestReturnReviewsStayBoundedWhileUndelivered`, `TestResolvedParentMakesUndeliveredReviewsLapse`, `TestExpiryAndRetirementLapseUndeliveredWork`, `TestRelayKeepsRefusedDeliveryPending` |
 
 The kill tests start a real child process on a real SQLite file and terminate it with SIGKILL.
 

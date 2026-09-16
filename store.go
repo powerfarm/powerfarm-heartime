@@ -30,7 +30,7 @@ const (
 	StateSkipped      = "skipped"      // materialized outside grace, coverage or expiry
 	StateCoalesced    = "coalesced"    // undelivered and folded into a newer occurrence
 	StateSuperseded   = "superseded"   // undelivered when a newer generation was installed
-	StateLapsed       = "lapsed"       // undelivered when coverage ended, the contract expired or retired
+	StateLapsed       = "lapsed"       // undelivered and no longer deliverable: coverage ended, expiry, retirement, or its reviewed parent resolved
 )
 
 // unresolvedStates still owe a return. Every occurrence in one of these states
@@ -282,8 +282,9 @@ func (r contractRow) expired(now int64) bool { return now >= r.expiresAt() }
 
 // lapse explains why undelivered occurrences of this generation can never be
 // delivered and which kinds are affected, or returns an empty reason. The end
-// of planning coverage lapses only work: the fallback is then exactly what must
-// be delivered. A pause is not a reason; it only defers delivery.
+// of planning coverage lapses work and planning reviews: the fallback then
+// carries the planning obligation and is exactly what must be delivered. A
+// pause is not a reason; it only defers delivery.
 func (r contractRow) lapse(now int64) (string, []string) {
 	switch {
 	case r.retired:
@@ -291,7 +292,7 @@ func (r contractRow) lapse(now int64) (string, []string) {
 	case r.expired(now):
 		return "contract expired at " + r.terms.Spec.ExpiresAt, ordinaryKinds
 	case now >= r.coverage:
-		return "planning coverage ended at " + formatUTC(r.coverage), []string{KindWork}
+		return "planning coverage ended at " + formatUTC(r.coverage), []string{KindWork, KindPlanningReview}
 	}
 	return "", nil
 }
