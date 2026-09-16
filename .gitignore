@@ -1,0 +1,6 @@
+*.db
+*.db-shm
+*.db-wal
+*.ready
+/heartime
+.DS_Store
